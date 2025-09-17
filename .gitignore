@@ -1,0 +1,32 @@
+# Node packages
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+build/
+frontend/dist/
+backend/dist/
+
+# Vite / cache
+.vite/
+.cache/
+.npm/
+npm-debug.log*
+yarn-error.log*
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+
+# Deployment
+.vercel/
+gh-pages/

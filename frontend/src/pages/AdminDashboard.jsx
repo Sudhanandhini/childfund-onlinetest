@@ -300,7 +300,7 @@ const AdminDashboard = () => {
     <div style={styles.container}>
       {/* Header */}
       <div style={styles.header}>
-        <h1 style={styles.title}>📊 Quiz Admin Dashboard</h1>
+        <h1 style={styles.title}>📊 Admin Dashboard</h1>
         <div style={styles.stats}>
           <div style={styles.statCard}>
             <h3>{users.length}</h3>
