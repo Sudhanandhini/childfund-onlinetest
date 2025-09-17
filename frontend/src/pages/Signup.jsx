@@ -260,7 +260,7 @@ export default function Signup() {
       <Box
         sx={{
           minHeight: '100vh',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, #ffffffff 0%, #e2e2e2ff 100%)',
           display: 'flex',
           alignItems: 'center',
           py: 4
@@ -300,7 +300,7 @@ export default function Signup() {
                   <PersonAdd sx={{ fontSize: 40 }} />
                 </Avatar>
                 <Typography variant="h4" gutterBottom>
-                  📚 Quiz Registration
+                  📚 Online Test
                 </Typography>
                 <Typography variant="body1" sx={{ opacity: 0.9 }}>
                   Start your learning journey today

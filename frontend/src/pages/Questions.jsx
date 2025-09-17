@@ -226,7 +226,7 @@ export default function Questions() {
       <Box
         sx={{
           minHeight: '100vh',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, #ffffffff 0%, #e2e2e2ff 100%)',
           py: 2
         }}
       >
