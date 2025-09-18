@@ -3,70 +3,37 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
+// Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS configuration for Vercel deployment
+console.log('Starting server...');
+console.log('Environment:', process.env.NODE_ENV);
+console.log('MongoDB URI exists:', !!process.env.MONGODB_URI);
+
+// CORS Configuration
 const corsOptions = {
-  origin: function (origin, callback) {
-    const allowedOrigins = [
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'https://childfund-onlinetest.vercel.app',
-      'https://childfund-onlinetest-git-main-sudhanandhinjs-projects.vercel.app',
-      'https://childfund-onlinetest-sudhanandhinjs-projects.vercel.app',
-      // Add Vercel preview deployments pattern
-      /^https:\/\/childfund-onlinetest.*\.vercel\.app$/
-    ];
-    
-    console.log('CORS Check - Origin:', origin);
-    
-    // Allow requests with no origin (mobile apps, curl, postman)
-    if (!origin) {
-      console.log('CORS: No origin - ALLOWED');
-      return callback(null, true);
-    }
-    
-    // Check if origin matches allowed list
-    const isAllowed = allowedOrigins.some(allowed => {
-      if (typeof allowed === 'string') {
-        return allowed === origin;
-      } else if (allowed instanceof RegExp) {
-        return allowed.test(origin);
-      }
-      return false;
-    });
-    
-    if (isAllowed) {
-      console.log('CORS: Origin allowed -', origin);
-      callback(null, true);
-    } else {
-      console.log('CORS: Origin blocked -', origin);
-      // For debugging, allow all origins initially
-      callback(null, true); // Change to callback(new Error('Not allowed by CORS')); after testing
-    }
-  },
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://childfund-onlinetest.vercel.app',
+    'https://childfund-onlinetest-git-main-sudhanandhinjs-projects.vercel.app',
+    'https://childfund-onlinetest-sudhanandhinjs-projects.vercel.app'
+  ],
   credentials: false,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  preflightContinue: false,
-  optionsSuccessStatus: 200
+  allowedHeaders: ['Content-Type', 'Authorization']
 };
 
 app.use(cors(corsOptions));
-
-// Parse JSON
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 
 // Request logging
 app.use((req, res, next) => {
-  const timestamp = new Date().toISOString();
-  console.log(`${timestamp} - ${req.method} ${req.path}`);
-  console.log('Origin:', req.get('Origin'));
-  console.log('User-Agent:', req.get('User-Agent')?.substring(0, 50) + '...');
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
 });
 
@@ -82,117 +49,89 @@ const userSchema = new mongoose.Schema({
   submittedAt: { type: Date, default: Date.now }
 });
 
-const User = mongoose.models.User || mongoose.model('User', userSchema);
+const User = mongoose.model('User', userSchema);
 
-// MongoDB connection
+// MongoDB Connection
 const connectDB = async () => {
   try {
-    const mongoURI = process.env.MONGODB_URI;
-    
-    if (!mongoURI) {
+    if (!process.env.MONGODB_URI) {
       throw new Error('MONGODB_URI environment variable is not set');
     }
-    
-    await mongoose.connect(mongoURI, {
+
+    await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 30000,
-      socketTimeoutMS: 45000,
-      bufferMaxEntries: 0,
-      maxPoolSize: 10,
-      minPoolSize: 1,
+      useUnifiedTopology: true
     });
     
-    console.log('✅ MongoDB connected successfully');
-    console.log('Database:', mongoose.connection.name);
-  } catch (err) {
-    console.error('❌ MongoDB connection error:', err.message);
+    console.log('MongoDB connected successfully');
+    console.log('Database name:', mongoose.connection.name);
+  } catch (error) {
+    console.error('MongoDB connection error:', error.message);
+    // Don't exit, keep trying
     setTimeout(connectDB, 5000);
   }
 };
 
-connectDB();
-
-// Health check route
+// Routes
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'MERN Quiz Server is running!',
     timestamp: new Date().toISOString(),
     database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
-    environment: process.env.NODE_ENV || 'development',
-    cors: 'Enabled for Vercel'
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
-app.get('/health', async (req, res) => {
-  try {
-    const dbState = mongoose.connection.readyState;
-    const states = { 0: 'Disconnected', 1: 'Connected', 2: 'Connecting', 3: 'Disconnecting' };
-    
-    res.json({
-      status: 'OK',
-      database: states[dbState],
-      timestamp: new Date().toISOString(),
-      port: PORT,
-      mongoUri: process.env.MONGODB_URI ? 'Set' : 'Not set'
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'Error',
-      error: error.message
-    });
-  }
+app.get('/health', (req, res) => {
+  const dbStates = {
+    0: 'Disconnected',
+    1: 'Connected', 
+    2: 'Connecting',
+    3: 'Disconnecting'
+  };
+  
+  res.json({
+    status: 'OK',
+    database: dbStates[mongoose.connection.readyState],
+    timestamp: new Date().toISOString(),
+    port: PORT
+  });
 });
 
 // Save user route
 app.post('/api/users', async (req, res) => {
   try {
-    console.log('📝 Received user submission:', req.body);
+    console.log('Received user data:', req.body);
     
-    // Check database connection
     if (mongoose.connection.readyState !== 1) {
-      console.log('❌ Database not connected');
       return res.status(503).json({
         success: false,
-        message: 'Database not connected',
-        error: 'Database connection unavailable'
+        message: 'Database not connected'
       });
     }
 
     const { name, email, phone, school, language, answers, score } = req.body;
     
-    // Validation
-    const requiredFields = { name, email, phone, school, language };
-    const missingFields = Object.entries(requiredFields)
-      .filter(([key, value]) => !value || !value.toString().trim())
-      .map(([key]) => key);
-    
-    if (missingFields.length > 0) {
-      console.log('❌ Missing fields:', missingFields);
+    if (!name || !email || !phone || !school || !language) {
       return res.status(400).json({
         success: false,
         message: 'Missing required fields',
-        required: ['name', 'email', 'phone', 'school', 'language'],
-        missing: missingFields
+        required: ['name', 'email', 'phone', 'school', 'language']
       });
     }
 
-    // Create new user
     const newUser = new User({
-      name: name.toString().trim(),
-      email: email.toString().trim().toLowerCase(),
-      phone: phone.toString().trim(),
-      school: school.toString().trim(),
-      language: language.toString().trim(),
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      phone: phone.trim(),
+      school: school.trim(),
+      language: language.trim(),
       answers: answers || [],
-      score: parseInt(score) || 0,
-      submittedAt: new Date()
+      score: parseInt(score) || 0
     });
 
-    // Save to database
     const savedUser = await newUser.save();
-    
-    console.log('✅ User saved successfully:', savedUser._id);
+    console.log('User saved:', savedUser._id);
     
     res.status(201).json({
       success: true,
@@ -202,35 +141,16 @@ app.post('/api/users', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Error saving user:', error);
-    
-    // Handle specific errors
-    if (error.name === 'ValidationError') {
-      const validationErrors = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: validationErrors
-      });
-    }
-    
-    if (error.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        message: 'Duplicate entry',
-        error: 'A submission with this information already exists'
-      });
-    }
-    
+    console.error('Save user error:', error);
     res.status(500).json({
       success: false,
-      message: 'Error saving quiz submission',
+      message: 'Error saving user',
       error: error.message
     });
   }
 });
 
-// Get all users
+// Get users route
 app.get('/api/users', async (req, res) => {
   try {
     if (mongoose.connection.readyState !== 1) {
@@ -240,10 +160,7 @@ app.get('/api/users', async (req, res) => {
       });
     }
 
-    const users = await User.find({})
-      .select('-__v')
-      .sort({ submittedAt: -1 })
-      .lean();
+    const users = await User.find({}).sort({ submittedAt: -1 });
     
     res.json({
       success: true,
@@ -252,7 +169,7 @@ app.get('/api/users', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Error fetching users:', error);
+    console.error('Get users error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching users',
@@ -261,11 +178,9 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-// Admin routes
+// Admin route
 app.get('/api/admin/users', async (req, res) => {
   try {
-    console.log('📊 Admin: Fetching all users...');
-    
     if (mongoose.connection.readyState !== 1) {
       return res.status(503).json({
         success: false,
@@ -273,11 +188,7 @@ app.get('/api/admin/users', async (req, res) => {
       });
     }
 
-    const users = await User.find({})
-      .sort({ submittedAt: -1 })
-      .lean();
-
-    console.log(`✅ Found ${users.length} users for admin`);
+    const users = await User.find({}).sort({ submittedAt: -1 });
     
     res.json({
       success: true,
@@ -286,7 +197,7 @@ app.get('/api/admin/users', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Admin error:', error);
+    console.error('Admin users error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching admin users',
@@ -295,39 +206,37 @@ app.get('/api/admin/users', async (req, res) => {
   }
 });
 
-// 404 handler
-app.use('*', (req, res) => {
-  console.log('❌ 404 - Route not found:', req.originalUrl);
-  res.status(404).json({ 
+// Error handling
+app.use((req, res) => {
+  res.status(404).json({
     success: false,
     message: 'Route not found',
-    path: req.originalUrl,
-    availableRoutes: ['/api/users', '/api/admin/users', '/health']
+    path: req.originalUrl
   });
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('❌ Server Error:', err.stack);
-  
-  if (err.message.includes('CORS')) {
-    return res.status(403).json({
-      success: false,
-      message: 'CORS Error: Origin not allowed',
-      origin: req.get('Origin')
-    });
-  }
-  
-  res.status(500).json({ 
+app.use((error, req, res, next) => {
+  console.error('Server error:', error);
+  res.status(500).json({
     success: false,
     message: 'Internal server error',
-    error: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+    error: error.message
   });
 });
 
 // Start server
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 CORS enabled for Vercel deployment`);
-});
+const startServer = async () => {
+  try {
+    await connectDB();
+    
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on port ${PORT}`);
+      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
