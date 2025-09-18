@@ -12,6 +12,12 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Allowed origins for CORS
+const allowedOrigins = [
+  "http://localhost:5173",                    // local dev (Vite default)
+  "https://childfund-onlinetest.vercel.app"   // deployed frontend on Vercel
+];
+
 // Middleware
 app.use(cors());
 app.use(express.json());
