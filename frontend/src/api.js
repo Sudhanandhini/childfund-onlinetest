@@ -105,7 +105,7 @@ export const saveUser = async (payload) => {
     console.log('Payload:', payload);
     
     // Validate required fields
-    const requiredFields = ['name', 'email', 'phone', 'school', 'language'];
+    const requiredFields = ['name', 'phone', 'school', 'language'];
     const missingFields = requiredFields.filter(field => !payload[field]?.trim());
     
     if (missingFields.length > 0) {
@@ -115,7 +115,7 @@ export const saveUser = async (payload) => {
     // Clean payload
     const cleanPayload = {
       name: payload.name.trim(),
-      email: payload.email.trim().toLowerCase(),
+     
       phone: payload.phone.trim(),
       school: payload.school.trim(),
       language: payload.language.trim(),
@@ -238,7 +238,7 @@ export const runDiagnostics = async () => {
     console.log('4. Testing save functionality...');
     const testPayload = {
       name: 'Test User ' + Date.now(),
-      email: 'test' + Date.now() + '@example.com',
+      
       phone: '1234567890',
       school: 'Test School',
       language: 'English',
