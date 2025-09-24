@@ -1,7 +1,10 @@
 import axios from 'axios';
 
 // Fixed backend URL - note the missing 'https://' in your description
-const API_BASE = 'https://childfund-onlinetest.onrender.com';
+// Dynamic API base URL using environment variables
+const API_BASE = process.env.NODE_ENV === 'production' 
+  ? (process.env.REACT_APP_PRODUCTION_API_URL || 'https://childfund-onlinetest.onrender.com')
+  : (process.env.REACT_APP_API_URL || 'http://localhost:5000');
 
 console.log('Frontend-Backend Connection:', {
   frontend: typeof window !== 'undefined' ? window.location.origin : 'server',
