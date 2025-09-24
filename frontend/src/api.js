@@ -104,8 +104,8 @@ export const saveUser = async (payload) => {
     console.log('Starting user save process...');
     console.log('Payload:', payload);
     
-    // Validate required fields
-    const requiredFields = ['name', 'phone', 'school', 'language'];
+    // Validate required fields - removed 'school' from required
+    const requiredFields = ['name', 'phone', 'language'];
     const missingFields = requiredFields.filter(field => !payload[field]?.trim());
     
     if (missingFields.length > 0) {
@@ -115,12 +115,12 @@ export const saveUser = async (payload) => {
     // Clean payload
     const cleanPayload = {
       name: payload.name.trim(),
-     
       phone: payload.phone.trim(),
-      school: payload.school.trim(),
+      school: payload.school?.trim() || '', // Optional field
+      class: payload.class?.trim() || '',   // Add class field
       language: payload.language.trim(),
       answers: payload.answers || [],
-      score: payload.score || 0
+      completionTime: payload.completionTime || 0
     };
     
     console.log('Sending clean payload:', cleanPayload);
@@ -238,12 +238,11 @@ export const runDiagnostics = async () => {
     console.log('4. Testing save functionality...');
     const testPayload = {
       name: 'Test User ' + Date.now(),
-      
       phone: '1234567890',
       school: 'Test School',
       language: 'English',
       answers: ['A', 'B', 'C'],
-      score: 75
+      completionTime: 30
     };
     const saveResult = await saveUser(testPayload);
     results.saveTest = { status: 'SUCCESS', userId: saveResult.data.userId };

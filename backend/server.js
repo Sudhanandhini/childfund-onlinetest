@@ -13,7 +13,7 @@ console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('PORT:', PORT);
 console.log('MongoDB URI exists:', !!process.env.MONGODB_URI);
 
-// CORS configuration
+// CORS configuration - Updated to match your Vercel domain
 const corsOptions = {
   origin: [
     'http://localhost:5173',
@@ -35,15 +35,15 @@ app.use((req, res, next) => {
   next();
 });
 
-// User Schema
+// Updated User Schema - Removed email requirement, made school optional
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  email: { type: String, required: true },
   phone: { type: String, required: true },
-  school: { type: String, required: true },
+  school: { type: String }, // Made optional
+  class: { type: String }, // Added class field
   language: { type: String, required: true },
-  answers: [{ type: String }],
-  score: { type: Number, default: 0 },
+  answers: [{ type: mongoose.Schema.Types.Mixed }], // Changed to Mixed for complex answer objects
+  completionTime: { type: Number, default: 0 }, // Added completion time
   submittedAt: { type: Date, default: Date.now }
 });
 
@@ -68,7 +68,6 @@ const connectDB = async () => {
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 10000, // 10 seconds
       socketTimeoutMS: 30000, // 30 seconds
-      // bufferMaxEntries: 0,
       maxPoolSize: 10,
       minPoolSize: 1,
       maxIdleTimeMS: 30000,
@@ -185,7 +184,7 @@ app.get('/test-db', async (req, res) => {
   }
 });
 
-// Save user route
+// Updated save user route - Removed email requirement
 app.post('/api/users', async (req, res) => {
   try {
     console.log('Received user submission:', req.body);
@@ -198,26 +197,27 @@ app.post('/api/users', async (req, res) => {
       });
     }
 
-    const { name, email, phone, school, language, answers, score } = req.body;
+    const { name, phone, school, class: userClass, language, answers, completionTime } = req.body;
     
-    // Validation
-    if (!name || !email || !phone || !school || !language) {
+    // Updated validation - Removed email and school requirements
+    if (!name || !phone || !language) {
       return res.status(400).json({
         success: false,
         message: 'Missing required fields',
-        required: ['name', 'email', 'phone', 'school', 'language']
+        required: ['name', 'phone', 'language'],
+        received: { name: !!name, phone: !!phone, language: !!language }
       });
     }
 
-    // Create new user
+    // Create new user with updated fields
     const newUser = new User({
       name: name.trim(),
-      email: email.trim().toLowerCase(),
       phone: phone.trim(),
-      school: school.trim(), 
+      school: school?.trim() || '', // Optional field
+      class: userClass?.trim() || '', // Optional field
       language: language.trim(),
       answers: answers || [],
-      score: parseInt(score) || 0
+      completionTime: parseInt(completionTime) || 0
     });
 
     const savedUser = await newUser.save();
@@ -227,11 +227,30 @@ app.post('/api/users', async (req, res) => {
       success: true,
       message: 'Quiz submitted successfully!',
       userId: savedUser._id,
-      score: savedUser.score
+      data: {
+        name: savedUser.name,
+        phone: savedUser.phone,
+        school: savedUser.school,
+        class: savedUser.class,
+        language: savedUser.language,
+        completionTime: savedUser.completionTime,
+        submittedAt: savedUser.submittedAt
+      }
     });
     
   } catch (error) {
     console.error('Save user error:', error);
+    
+    // More detailed error response
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: validationErrors
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Error saving user data',
