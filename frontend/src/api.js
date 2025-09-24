@@ -1,14 +1,18 @@
 import axios from 'axios';
 
-// Fixed backend URL - note the missing 'https://' in your description
-// Dynamic API base URL using environment variables
-const API_BASE = process.env.NODE_ENV === 'production' 
-  ? (process.env.REACT_APP_PRODUCTION_API_URL || 'https://childfund-onlinetest.onrender.com')
-  : (process.env.REACT_APP_API_URL || 'http://localhost:5000');
+// Browser-safe environment detection using window.location
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+// Set API base URL based on environment
+const API_BASE = isLocalhost 
+  ? 'http://localhost:5000'
+  : 'https://childfund-onlinetest.onrender.com';
 
 console.log('Frontend-Backend Connection:', {
-  frontend: typeof window !== 'undefined' ? window.location.origin : 'server',
+  frontend: window.location.origin,
   backend: API_BASE,
+  hostname: window.location.hostname,
+  isLocalhost: isLocalhost,
   timestamp: new Date().toISOString()
 });
 
@@ -84,7 +88,7 @@ export const wakeUpServer = async () => {
 // Test connection
 export const testConnection = async () => {
   try {
-    console.log('Testing connection to Render backend...');
+    console.log('Testing connection to backend...');
     const response = await api.get('/health');
     console.log('Connection successful:', response.data);
     return response.data;
