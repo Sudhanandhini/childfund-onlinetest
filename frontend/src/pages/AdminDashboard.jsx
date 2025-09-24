@@ -16,15 +16,19 @@ const AdminDashboard = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/admin/users');
-      
+      // Dynamic API URL detection
+      const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:5000'
+        : 'https://childfund-onlinetest.onrender.com';
+
+      const response = await fetch(`${API_BASE_URL}/api/admin/users`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log('Fetched users:', data);
-      
+
       const usersData = data.users || data || [];
       setUsers(Array.isArray(usersData) ? usersData : []);
       setError('');
@@ -70,24 +74,24 @@ const AdminDashboard = () => {
       const allSubmissions = getAllSubmissions();
       return allSubmissions.filter(submission => {
         const user = submission.user;
-        const matchesSearch = !searchTerm || 
+        const matchesSearch = !searchTerm ||
           user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           user.phone?.includes(searchTerm) ||
           user.school?.toLowerCase().includes(searchTerm.toLowerCase());
-        
+
         const matchesLanguage = selectedLanguage === 'all' || user.language === selectedLanguage;
-        
+
         return matchesSearch && matchesLanguage;
       });
     } else {
       return users.filter(user => {
-        const matchesSearch = !searchTerm || 
+        const matchesSearch = !searchTerm ||
           user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           user.phone?.includes(searchTerm) ||
           user.school?.toLowerCase().includes(searchTerm.toLowerCase());
-        
+
         const matchesLanguage = selectedLanguage === 'all' || user.language === selectedLanguage;
-        
+
         return matchesSearch && matchesLanguage;
       });
     }
@@ -96,7 +100,7 @@ const AdminDashboard = () => {
   // Export individual user data with all submissions
   const exportUserData = async (user) => {
     setExportingUserId(user._id);
-    
+
     try {
       // Prepare user data with all submissions
       const userData = {
@@ -164,7 +168,7 @@ const AdminDashboard = () => {
 
       // Create CSV content
       const csvContent = createUserCSV(userData);
-      
+
       // Download CSV file
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
@@ -189,7 +193,7 @@ const AdminDashboard = () => {
   // Create CSV content for individual user
   const createUserCSV = (userData) => {
     let csv = '';
-    
+
     // User Information Section
     csv += 'USER INFORMATION\n';
     csv += 'Field,Value\n';
@@ -217,7 +221,7 @@ const AdminDashboard = () => {
       csv += `Submitted At: ${submission.submittedAt}\n`;
       csv += `Session ID: ${submission.sessionId}\n`;
       csv += 'Question ID,Question,Answer\n';
-      
+
       submission.answers.forEach(answer => {
         csv += `${answer.questionId},"${answer.question.replace(/"/g, '""')}","${answer.answer}"\n`;
       });
@@ -229,7 +233,7 @@ const AdminDashboard = () => {
 
   const filteredData = getFilteredData();
   const totalSubmissions = getAllSubmissions().length;
-  const usersWithMultipleAttempts = users.filter(user => 
+  const usersWithMultipleAttempts = users.filter(user =>
     (user.submissions?.length || 0) > 1 || user.totalAttempts > 1
   ).length;
 
@@ -363,7 +367,7 @@ const AdminDashboard = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             style={styles.searchInput}
           />
-          
+
           <select
             value={selectedLanguage}
             onChange={(e) => setSelectedLanguage(e.target.value)}
@@ -394,7 +398,7 @@ const AdminDashboard = () => {
         <div style={styles.noData}>
           <h3>No {viewMode === 'users' ? 'Users' : 'Submissions'} Found</h3>
           <p>
-            {users.length === 0 
+            {users.length === 0
               ? 'Quiz submissions will appear here once users start submitting.'
               : 'Try adjusting your search or language filter.'
             }
@@ -417,8 +421,8 @@ const AdminDashboard = () => {
       {filteredData.length > 0 && (
         <div style={styles.tableContainer}>
           {viewMode === 'users' ? (
-            <UsersTable 
-              users={filteredData} 
+            <UsersTable
+              users={filteredData}
               onExportUser={exportUserData}
               exportingUserId={exportingUserId}
             />
@@ -448,9 +452,9 @@ const UsersTable = ({ users, onExportUser, exportingUserId }) => (
     </thead>
     <tbody>
       {users.map((user, index) => (
-        <UserRow 
-          key={user._id || index} 
-          user={user} 
+        <UserRow
+          key={user._id || index}
+          user={user}
           index={index}
           onExportUser={onExportUser}
           isExporting={exportingUserId === user._id}
@@ -486,10 +490,10 @@ const SubmissionsTable = ({ submissions }) => (
 const UserRow = ({ user, index, onExportUser, isExporting }) => {
   const [showSubmissions, setShowSubmissions] = useState(false);
   const totalAttempts = user.totalAttempts || user.submissions?.length || 1;
-  
+
   return (
     <>
-      <tr style={{ 
+      <tr style={{
         ...styles.tableRow,
         backgroundColor: index % 2 === 0 ? '#f8f9fa' : 'white'
       }}>
@@ -535,7 +539,7 @@ const UserRow = ({ user, index, onExportUser, isExporting }) => {
             >
               {showSubmissions ? '🔼 Hide' : '🔽 View'} Details
             </button>
-            
+
             <button
               onClick={() => onExportUser(user)}
               disabled={isExporting}
@@ -550,7 +554,7 @@ const UserRow = ({ user, index, onExportUser, isExporting }) => {
           </div>
         </td>
       </tr>
-      
+
       {showSubmissions && (
         <tr>
           <td colSpan="8" style={styles.submissionsContainer}>
@@ -565,10 +569,10 @@ const UserRow = ({ user, index, onExportUser, isExporting }) => {
 // Submission Row Component (unchanged)
 const SubmissionRow = ({ submission, index }) => {
   const [showAnswers, setShowAnswers] = useState(false);
-  
+
   return (
     <>
-      <tr style={{ 
+      <tr style={{
         ...styles.tableRow,
         backgroundColor: index % 2 === 0 ? '#f8f9fa' : 'white'
       }}>
@@ -618,7 +622,7 @@ const SubmissionRow = ({ submission, index }) => {
           </button>
         </td>
       </tr>
-      
+
       {showAnswers && (
         <tr>
           <td colSpan="7" style={styles.answersContainer}>
