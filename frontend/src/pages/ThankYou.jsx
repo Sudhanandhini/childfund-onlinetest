@@ -241,28 +241,28 @@ export default function ThankYou() {
     }
   };
 
-  const achievements = [
-    { 
-      icon: <CheckCircle />, 
-      text: 'Quiz Completed Successfully', 
-      color: 'success' 
-    },
-    { 
-      icon: <Timer />, 
-      text: completionTime ? `Finished in ${completionTime} minutes` : 'Great timing!', 
-      color: 'info' 
-    },
-    { 
-      icon: <Verified />, 
-      text: 'Responses Saved Securely', 
-      color: 'primary' 
-    },
-    { 
-      icon: <TrendingUp />, 
-      text: isNewUser ? 'First Attempt!' : `Attempt #${attemptNumber}`, 
-      color: 'secondary' 
-    },
-  ];
+  // const achievements = [
+  //   { 
+  //     icon: <CheckCircle />, 
+  //     text: 'Quiz Completed Successfully', 
+  //     color: 'success' 
+  //   },
+  //   { 
+  //     icon: <Timer />, 
+  //     text: completionTime ? `Finished in ${completionTime} minutes` : 'Great timing!', 
+  //     color: 'info' 
+  //   },
+  //   { 
+  //     icon: <Verified />, 
+  //     text: 'Responses Saved Securely', 
+  //     color: 'primary' 
+  //   },
+  //   { 
+  //     icon: <TrendingUp />, 
+  //     text: isNewUser ? 'First Attempt!' : `Attempt #${attemptNumber}`, 
+  //     color: 'secondary' 
+  //   },
+  // ];
 
   return (
     <ThemeProvider theme={theme}>
@@ -313,7 +313,7 @@ export default function ThankYou() {
         />
 
         {/* CSS Confetti Effect */}
-        {showConfetti && (
+        {/* {showConfetti && (
           <Box
             sx={{
               position: 'fixed',
@@ -325,7 +325,7 @@ export default function ThankYou() {
               zIndex: 1000,
             }}
           >
-            {/* Generate confetti pieces */}
+            
             {[...Array(25)].map((_, i) => (
               <Box
                 key={i}
@@ -350,7 +350,7 @@ export default function ThankYou() {
               />
             ))}
           </Box>
-        )}
+        )} */}
 
         <Container maxWidth="md" sx={{ py: 4, position: 'relative', zIndex: 1 }}>
           {/* Main Success Card */}
@@ -469,7 +469,7 @@ export default function ThankYou() {
           </Fade>
 
           {/* Achievements Card */}
-          <Slide direction="up" in={animationStep >= 3} timeout={1000}>
+          {/* <Slide direction="up" in={animationStep >= 3} timeout={1000}>
             <Card sx={{ mb: 4 }}>
               <CardContent sx={{ p: 4 }}>
                 <Typography 
@@ -513,7 +513,7 @@ export default function ThankYou() {
                 </List>
               </CardContent>
             </Card>
-          </Slide>
+          </Slide> */}
 
           {/* Performance Stats */}
           {(score !== undefined || completionTime) && (
@@ -581,26 +581,7 @@ export default function ThankYou() {
                 </Typography>
                 
                 <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      size="large"
-                      startIcon={<RestartAlt />}
-                      onClick={handleTakeAgain}
-                      sx={{
-                        background: 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)',
-                        '&:hover': {
-                          background: 'linear-gradient(135deg, #45a049 0%, #3d8b40 100%)',
-                        },
-                        animation: `${bounce} 2s infinite`,
-                        py: 2,
-                      }}
-                    >
-                      Take Again
-                    </Button>
-                  </Grid>
-                  
+                 
                   <Grid item xs={12} sm={6} md={3}>
                     <Button
                       fullWidth
@@ -615,18 +596,7 @@ export default function ThankYou() {
                     </Button>
                   </Grid>
                   
-                  {/* <Grid item xs={12} sm={6} md={3}>
-                    <Button
-                      fullWidth
-                      variant="outlined"
-                      size="large"
-                      startIcon={<Share />}
-                      onClick={handleShare}
-                      sx={{ py: 2 }}
-                    >
-                      Share Result
-                    </Button>
-                  </Grid> */}
+                 
                   
                   <Grid item xs={12} sm={6} md={3}>
                     <Button
