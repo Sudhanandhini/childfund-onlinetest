@@ -41,6 +41,37 @@ const AdminDashboard = () => {
     }
   };
 
+  // Helper function to safely format dates
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      return date.toLocaleDateString();
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return 'Invalid Date';
+    }
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'N/A';
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      return date.toLocaleString();
+    } catch (error) {
+      console.error('DateTime formatting error:', error);
+      return 'Invalid Date';
+    }
+  };
+
   // Get all submissions from all users for submissions view
   const getAllSubmissions = () => {
     const submissions = [];
@@ -68,29 +99,47 @@ const AdminDashboard = () => {
     return submissions.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
   };
 
-  // Filter function
+  // Improved filter function with better search handling
   const getFilteredData = () => {
     if (viewMode === 'submissions') {
       const allSubmissions = getAllSubmissions();
       return allSubmissions.filter(submission => {
         const user = submission.user;
-        const matchesSearch = !searchTerm ||
-          user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.phone?.includes(searchTerm) ||
-          user.school?.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        // Improved search matching with null safety
+        const matchesSearch = !searchTerm || searchTerm.trim() === '' ||
+          (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (user.phone && user.phone.toString().includes(searchTerm)) ||
+          (user.school && user.school.toLowerCase().includes(searchTerm.toLowerCase()));
 
-        const matchesLanguage = selectedLanguage === 'all' || user.language === selectedLanguage;
+        const matchesLanguage = selectedLanguage === 'all' || 
+          (user.language && user.language.toLowerCase() === selectedLanguage.toLowerCase());
 
         return matchesSearch && matchesLanguage;
       });
     } else {
       return users.filter(user => {
-        const matchesSearch = !searchTerm ||
-          user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.phone?.includes(searchTerm) ||
-          user.school?.toLowerCase().includes(searchTerm.toLowerCase());
+        // Improved search matching with null safety and debugging
+        const searchLower = searchTerm.toLowerCase().trim();
+        const matchesSearch = !searchTerm || searchTerm.trim() === '' ||
+          (user.name && user.name.toLowerCase().includes(searchLower)) ||
+          (user.phone && user.phone.toString().includes(searchTerm)) ||
+          (user.school && user.school.toLowerCase().includes(searchLower));
 
-        const matchesLanguage = selectedLanguage === 'all' || user.language === selectedLanguage;
+        const matchesLanguage = selectedLanguage === 'all' || 
+          (user.language && user.language.toLowerCase() === selectedLanguage.toLowerCase());
+
+        // Debug logging (remove in production)
+        if (searchTerm && searchTerm.trim() !== '') {
+          console.log('Search debug:', {
+            searchTerm: searchLower,
+            userName: user.name,
+            userPhone: user.phone,
+            userSchool: user.school,
+            matchesSearch,
+            matchesLanguage
+          });
+        }
 
         return matchesSearch && matchesLanguage;
       });
@@ -105,14 +154,14 @@ const AdminDashboard = () => {
       // Prepare user data with all submissions
       const userData = {
         userInfo: {
-          name: user.name,
-          phone: user.phone,
+          name: user.name || 'N/A',
+          phone: user.phone || 'N/A',
           school: user.school || 'N/A',
           class: user.class || 'N/A',
-          language: user.language,
+          language: user.language || 'N/A',
           totalAttempts: user.totalAttempts || user.submissions?.length || 1,
-          firstSubmission: new Date(user.createdAt).toLocaleString(),
-          latestSubmission: new Date(user.lastSubmission || user.updatedAt).toLocaleString()
+          firstSubmission: formatDateTime(user.createdAt),
+          latestSubmission: formatDateTime(user.lastSubmission || user.updatedAt || user.createdAt)
         },
         submissions: []
       };
@@ -122,7 +171,7 @@ const AdminDashboard = () => {
         user.submissions.forEach((submission, index) => {
           const submissionData = {
             attemptNumber: index + 1,
-            submittedAt: new Date(submission.submittedAt).toLocaleString(),
+            submittedAt: formatDateTime(submission.submittedAt),
             sessionId: submission.sessionId || 'N/A',
             totalAnswers: submission.answers?.length || 0,
             completionTime: submission.completionTime ? `${submission.completionTime} minutes` : 'N/A',
@@ -147,7 +196,7 @@ const AdminDashboard = () => {
         // Handle legacy single submission
         const submissionData = {
           attemptNumber: 1,
-          submittedAt: new Date(user.createdAt).toLocaleString(),
+          submittedAt: formatDateTime(user.createdAt),
           sessionId: 'Legacy',
           totalAnswers: user.answers.length,
           completionTime: 'N/A',
@@ -175,7 +224,7 @@ const AdminDashboard = () => {
       if (link.download !== undefined) {
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
-        link.setAttribute('download', `user_${user.name.replace(/\s+/g, '_')}_${user.phone}_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute('download', `user_${(user.name || 'unknown').replace(/\s+/g, '_')}_${user.phone || 'no_phone'}_${new Date().toISOString().split('T')[0]}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
@@ -223,7 +272,7 @@ const AdminDashboard = () => {
       csv += 'Question ID,Question,Answer\n';
 
       submission.answers.forEach(answer => {
-        csv += `${answer.questionId},"${answer.question.replace(/"/g, '""')}","${answer.answer}"\n`;
+        csv += `${answer.questionId},"${(answer.question || '').replace(/"/g, '""')}","${answer.answer || ''}"\n`;
       });
       csv += '\n';
     });
@@ -251,7 +300,7 @@ const AdminDashboard = () => {
           `"${submission.user.language || ''}"`,
           `${submission.submissionNumber}/${submission.totalUserSubmissions}`,
           submission.answers?.length || 0,
-          `"${new Date(submission.submittedAt).toLocaleString()}"`,
+          `"${formatDateTime(submission.submittedAt)}"`,
           `"${submission.sessionId || 'N/A'}"`
         ].join(','))
       ].join('\n');
@@ -268,8 +317,8 @@ const AdminDashboard = () => {
           `"${user.class || ''}"`,
           `"${user.language || ''}"`,
           user.totalAttempts || user.submissions?.length || 1,
-          `"${new Date(user.lastSubmission || user.updatedAt || user.createdAt).toLocaleString()}"`,
-          `"${new Date(user.createdAt).toLocaleString()}"`
+          `"${formatDateTime(user.lastSubmission || user.updatedAt || user.createdAt)}"`,
+          `"${formatDateTime(user.createdAt)}"`
         ].join(','))
       ].join('\n');
 
@@ -364,7 +413,10 @@ const AdminDashboard = () => {
             type="text"
             placeholder="🔍 Search by name, phone, or school..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              console.log('Search term changed:', e.target.value); // Debug logging
+              setSearchTerm(e.target.value);
+            }}
             style={styles.searchInput}
           />
 
@@ -425,9 +477,15 @@ const AdminDashboard = () => {
               users={filteredData}
               onExportUser={exportUserData}
               exportingUserId={exportingUserId}
+              formatDate={formatDate}
+              formatDateTime={formatDateTime}
             />
           ) : (
-            <SubmissionsTable submissions={filteredData} />
+            <SubmissionsTable 
+              submissions={filteredData} 
+              formatDate={formatDate}
+              formatDateTime={formatDateTime}
+            />
           )}
         </div>
       )}
@@ -436,7 +494,7 @@ const AdminDashboard = () => {
 };
 
 // Enhanced Users Table Component with Individual Export
-const UsersTable = ({ users, onExportUser, exportingUserId }) => (
+const UsersTable = ({ users, onExportUser, exportingUserId, formatDate, formatDateTime }) => (
   <table style={styles.table}>
     <thead>
       <tr style={styles.tableHeader}>
@@ -458,14 +516,16 @@ const UsersTable = ({ users, onExportUser, exportingUserId }) => (
           index={index}
           onExportUser={onExportUser}
           isExporting={exportingUserId === user._id}
+          formatDate={formatDate}
+          formatDateTime={formatDateTime}
         />
       ))}
     </tbody>
   </table>
 );
 
-// Submissions Table Component (unchanged)
-const SubmissionsTable = ({ submissions }) => (
+// Submissions Table Component
+const SubmissionsTable = ({ submissions, formatDate, formatDateTime }) => (
   <table style={styles.table}>
     <thead>
       <tr style={styles.tableHeader}>
@@ -480,16 +540,32 @@ const SubmissionsTable = ({ submissions }) => (
     </thead>
     <tbody>
       {submissions.map((submission, index) => (
-        <SubmissionRow key={`${submission.user._id}-${submission.submittedAt}-${index}`} submission={submission} index={index} />
+        <SubmissionRow 
+          key={`${submission.user._id}-${submission.submittedAt}-${index}`} 
+          submission={submission} 
+          index={index}
+          formatDate={formatDate}
+          formatDateTime={formatDateTime}
+        />
       ))}
     </tbody>
   </table>
 );
 
 // Enhanced User Row Component with Individual Export Button
-const UserRow = ({ user, index, onExportUser, isExporting }) => {
+const UserRow = ({ user, index, onExportUser, isExporting, formatDate, formatDateTime }) => {
   const [showSubmissions, setShowSubmissions] = useState(false);
   const totalAttempts = user.totalAttempts || user.submissions?.length || 1;
+
+  // Get the latest submission date with fallbacks
+  const getLatestSubmissionDate = (user) => {
+    if (user.lastSubmission) return user.lastSubmission;
+    if (user.updatedAt) return user.updatedAt;
+    if (user.createdAt) return user.createdAt;
+    return null;
+  };
+
+  const latestDate = getLatestSubmissionDate(user);
 
   return (
     <>
@@ -521,9 +597,9 @@ const UserRow = ({ user, index, onExportUser, isExporting }) => {
         </td>
         <td style={styles.td}>
           <div style={styles.dateContainer}>
-            <div>{new Date(user.lastSubmission || user.updatedAt || user.createdAt).toLocaleDateString()}</div>
+            <div>{formatDate(latestDate)}</div>
             <small style={styles.timeText}>
-              {new Date(user.lastSubmission || user.updatedAt || user.createdAt).toLocaleTimeString()}
+              {latestDate ? new Date(latestDate).toLocaleTimeString() : 'N/A'}
             </small>
           </div>
         </td>
@@ -558,7 +634,7 @@ const UserRow = ({ user, index, onExportUser, isExporting }) => {
       {showSubmissions && (
         <tr>
           <td colSpan="8" style={styles.submissionsContainer}>
-            <UserSubmissionsDetail user={user} />
+            <UserSubmissionsDetail user={user} formatDateTime={formatDateTime} />
           </td>
         </tr>
       )}
@@ -566,8 +642,8 @@ const UserRow = ({ user, index, onExportUser, isExporting }) => {
   );
 };
 
-// Submission Row Component (unchanged)
-const SubmissionRow = ({ submission, index }) => {
+// Submission Row Component
+const SubmissionRow = ({ submission, index, formatDate, formatDateTime }) => {
   const [showAnswers, setShowAnswers] = useState(false);
 
   return (
@@ -577,16 +653,16 @@ const SubmissionRow = ({ submission, index }) => {
         backgroundColor: index % 2 === 0 ? '#f8f9fa' : 'white'
       }}>
         <td style={styles.td}>
-          <strong>{submission.user.name}</strong><br />
+          <strong>{submission.user.name || 'N/A'}</strong><br />
           <small>{submission.user.school || 'No school'}</small>
         </td>
-        <td style={styles.td}>{submission.user.phone}</td>
+        <td style={styles.td}>{submission.user.phone || 'N/A'}</td>
         <td style={styles.td}>
           <span style={{
             ...styles.languageBadge,
             backgroundColor: getLanguageColor(submission.user.language),
           }}>
-            {submission.user.language}
+            {submission.user.language || 'N/A'}
           </span>
         </td>
         <td style={styles.td}>
@@ -604,9 +680,9 @@ const SubmissionRow = ({ submission, index }) => {
         </td>
         <td style={styles.td}>
           <div style={styles.dateContainer}>
-            <div>{new Date(submission.submittedAt).toLocaleDateString()}</div>
+            <div>{formatDate(submission.submittedAt)}</div>
             <small style={styles.timeText}>
-              {new Date(submission.submittedAt).toLocaleTimeString()}
+              {submission.submittedAt ? new Date(submission.submittedAt).toLocaleTimeString() : 'N/A'}
             </small>
           </div>
         </td>
@@ -634,10 +710,10 @@ const SubmissionRow = ({ submission, index }) => {
   );
 };
 
-// User Submissions Detail Component (unchanged)
-const UserSubmissionsDetail = ({ user }) => (
+// User Submissions Detail Component
+const UserSubmissionsDetail = ({ user, formatDateTime }) => (
   <div style={styles.userSubmissionsDetail}>
-    <h4>📋 All Submissions for {user.name}</h4>
+    <h4>📋 All Submissions for {user.name || 'N/A'}</h4>
     {user.submissions && user.submissions.length > 0 ? (
       <div style={styles.submissionsList}>
         {user.submissions.map((submission, index) => (
@@ -645,7 +721,7 @@ const UserSubmissionsDetail = ({ user }) => (
             <div style={styles.submissionHeader}>
               <strong>Attempt #{index + 1}</strong>
               <span style={styles.submissionDate}>
-                {new Date(submission.submittedAt).toLocaleString()}
+                {formatDateTime(submission.submittedAt)}
               </span>
             </div>
             <div style={styles.submissionStats}>
@@ -666,7 +742,7 @@ const UserSubmissionsDetail = ({ user }) => (
   </div>
 );
 
-// Answers Detail Component (unchanged)
+// Answers Detail Component
 const AnswersDetail = ({ answers, sessionId, compact = false }) => (
   <div style={compact ? styles.answersCompact : styles.answersContent}>
     {!compact && sessionId && (
@@ -678,11 +754,11 @@ const AnswersDetail = ({ answers, sessionId, compact = false }) => (
           <div key={idx} style={compact ? styles.answerItemCompact : styles.answerItem}>
             <div style={styles.questionText}>
               <strong>Q{answer.questionId}: </strong>
-              {answer.question}
+              {answer.question || 'N/A'}
             </div>
             <div style={styles.answerText}>
               <strong>Answer: </strong>
-              <span style={styles.userAnswer}>{answer.answer}</span>
+              <span style={styles.userAnswer}>{answer.answer || 'N/A'}</span>
             </div>
           </div>
         ))}
@@ -706,7 +782,7 @@ const getLanguageColor = (language) => {
   return colors[language?.toLowerCase()] || '#95A5A6';
 };
 
-// Enhanced Styles
+// Enhanced Styles with animation for spinner
 const styles = {
   container: {
     padding: '20px',
@@ -730,6 +806,10 @@ const styles = {
     height: '50px',
     animation: 'spin 1s linear infinite',
     marginBottom: '20px'
+  },
+  '@keyframes spin': {
+    '0%': { transform: 'rotate(0deg)' },
+    '100%': { transform: 'rotate(360deg)' }
   },
   header: {
     marginBottom: '30px',
